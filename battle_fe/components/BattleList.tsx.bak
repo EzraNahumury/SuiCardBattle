@@ -1,0 +1,92 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+import { BATTLE_TYPE } from '@/lib/constants';
+import { SuiGrpcClient } from '@mysten/sui/grpc';
+
+let suiClient: SuiGrpcClient | null = null;
+const getSuiClient = () => {
+    if (typeof window === 'undefined') return null;
+    if (!suiClient) {
+        suiClient = new SuiGrpcClient({ baseUrl: 'https://fullnode.testnet.sui.io:443', network: 'testnet' });
+    }
+    return suiClient;
+};
+
+export function BattleList({ onSelectBattle }: { onSelectBattle: (id: string) => void }) {
+    const { data: sharedBattles, isPending: isLevelsPending } = useQuery({
+        queryKey: ['battles'],
+        queryFn: async () => {
+            const client = getSuiClient();
+            if (!client) return { data: [] };
+            try {
+                return await client.queryObjects({
+                    filter: {
+                        StructType: BATTLE_TYPE,
+                    },
+                    options: {
+                        showContent: true,
+                    }
+                });
+            } catch (e) {
+                console.error('Error fetching battles:', e);
+                return { data: [] };
+            }
+        },
+        refetchInterval: 5000,
+    });
+
+    if (isLevelsPending) return (
+        <div className="flex flex-col gap-4">
+            {[1, 2, 3].map((i) => (
+                <div key={i} className="h-24 w-full animate-pulse rounded-2xl bg-white/5" />
+            ))}
+        </div>
+    );
+
+    const battles = (sharedBattles as any)?.data || [];
+
+    return (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {battles.length === 0 && (
+                <div className="col-span-full py-20 text-center">
+                    <p className="text-zinc-500">No active battles found. Create one!</p>
+                </div>
+            )}
+
+            {battles.map((battle: any) => {
+                const content = battle.data?.content;
+                const fields = content?.dataType === 'moveObject' ? content.fields : null;
+
+                if (!fields || !fields.is_open) return null;
+
+                return (
+                    <div
+                        key={battle.data.objectId}
+                        className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 transition-all hover:bg-white/10 cursor-pointer"
+                        onClick={() => onSelectBattle(battle.data.objectId)}
+                    >
+                        <div className="flex items-center justify-between mb-4">
+                            <span className="text-xs font-mono text-indigo-400">#{battle.data.objectId.slice(-6)}</span>
+                            <div className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                        </div>
+
+                        <h3 className="text-lg font-bold text-white mb-1">
+                            {fields.coin_Left.fields.name} vs {fields.coin_Right.fields.name}
+                        </h3>
+
+                        <p className="text-sm text-zinc-400 mb-6">
+                            Entry Fee: <span className="text-zinc-100 font-semibold">{(Number(fields.entry_fee) / 1e9).toFixed(2)} SUI</span>
+                        </p>
+
+                        <button
+                            className="w-full rounded-xl bg-white/10 py-3 text-sm font-bold text-white transition-all group-hover:bg-indigo-600"
+                        >
+                            Join Battle
+                        </button>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
