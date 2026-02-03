@@ -61,7 +61,7 @@ export function BattleGame({ battleId, onBack }: { battleId: string, onBack: () 
                 digest,
                 options: { showEvents: true },
             });
-            const events = tx?.events ?? tx?.data?.events ?? [];
+            const events = tx?.events ?? [];
             const eventType = `${PACKAGE_ID}::${MODULE_NAME}::BattleResult`;
             const events = tx?.events ?? [];
             const parsed = battleEvent?.parsedJson;
