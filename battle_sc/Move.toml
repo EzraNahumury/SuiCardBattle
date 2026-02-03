@@ -1,0 +1,10 @@
+[package]
+name = "battle_sc"
+edition = "2024"
+
+[dependencies]
+Sui = { git = "https://github.com/MystenLabs/sui.git", subdir = "crates/sui-framework/packages/sui-framework", rev = "framework/testnet" }
+
+[addresses]
+battle_sc = "0x0"
+sui = "0x2"
